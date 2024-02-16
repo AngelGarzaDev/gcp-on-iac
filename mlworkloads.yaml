@@ -1,0 +1,39 @@
+- hosts: 34.170.212.240
+  become: true
+  become_user: root
+
+  tasks:
+  - name: Update all packages
+    ansible.builtin.apt:
+      update_cache: true
+      upgrade: "dist"
+
+  - name: Install packages
+    ansible.builtin.package:
+      name:
+        - wget
+        - curl
+        - btop
+        - git
+      state: present
+
+  - name: Register a variable
+    ansible.builtin.shell: nvidia-smi
+    register: driver
+    ignore_errors: true
+
+  - name: Use the variable in conditional statement
+    ansible.builtin.shell: curl https://raw.githubusercontent.com/GoogleCloudPlatform/compute-gpu-installation/main/linux/install_gpu_driver.py --output install_gpu_driver.py && sudo python3 install_gpu_driver.py
+    when: driver is failed
+
+  - name: Create a ext4 filesystem
+    community.general.filesystem:
+      fstype: ext4
+      dev: /dev/nvme0n2p1
+
+  - name: Mount filesystem
+    ansible.posix.mount:
+      path: /mnt/ext1
+      src: /dev/nvme0n2p1
+      fstype: ext4
+      state: mounted
