@@ -16,12 +16,10 @@ resource "google_compute_instance" "my_instance" {
         image = "debian-cloud/debian-11"
       }
     }
-
     guest_accelerator {
         type = "nvidia-l4"
         count = "1"
     }
-
     network_interface {
       network = google_compute_network.terraform-network.self_link
       subnetwork = google_compute_subnetwork.terraform-subnet. self_link
