@@ -11,6 +11,9 @@ resource "google_compute_instance" "my_instance" {
     machine_type = "g2-standard-12"
     zone = "us-central1-a"
     allow_stopping_for_update = true
+#    metadata = {
+#      enable-oslogin: "TRUE"
+#  }
     boot_disk {
       initialize_params {
         image = "debian-cloud/debian-11"
@@ -24,7 +27,7 @@ resource "google_compute_instance" "my_instance" {
       network = google_compute_network.terraform-network.self_link
       subnetwork = google_compute_subnetwork.terraform-subnet. self_link
       access_config {
-        //necessary even empty
+        nat_ip = google_compute_address.static1.address
       }
     }
     scheduling {
@@ -34,6 +37,9 @@ resource "google_compute_instance" "my_instance" {
       preemptible = "true"
       instance_termination_action = "STOP"
     }
+  lifecycle {
+    ignore_changes = [attached_disk]
+  }
 }
 
 
@@ -45,10 +51,12 @@ resource "google_compute_disk" "mlworkloads" {
 
 }
 
+
 resource "google_compute_attached_disk" "mlworkloads" {
   disk     = google_compute_disk.mlworkloads.id
   instance = google_compute_instance.my_instance.id
 }
+
 
 resource "google_compute_network" "terraform-network" {
   name = "terraform-network"
@@ -78,4 +86,17 @@ resource "google_compute_firewall" "default" {
     source_ranges = ["75.4.192.68/32","35.235.240.0/20"]
     destination_ranges = []
     source_tags = []
+}
+
+resource "google_compute_address" "static1" {
+  name = "mlworkloads-ip"
+  region = "us-central1"
+}
+
+resource "google_compute_project_metadata" "my_ssh_key" {
+  metadata = {
+    ssh-keys = <<EOF
+      serveradmin:ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILsPbpDtxKRZc5BbATpQ/wP6GgPOm+1yQfXGzp/84sob serveradmin
+    EOF
+  }
 }
