@@ -7,7 +7,7 @@ provider "google" {
 
 
 resource "google_compute_instance" "my_instance" {
-    name = "terraform-instance"
+    name = "mlworkloads-instance"
     machine_type = "g2-standard-12"
     zone = "us-central1-a"
     allow_stopping_for_update = true
@@ -15,10 +15,6 @@ resource "google_compute_instance" "my_instance" {
       initialize_params {
         image = "debian-cloud/debian-11"
       }
-    }
-
-    scratch_disk {
-        interface = "NVME"
     }
 
     guest_accelerator {
@@ -38,9 +34,23 @@ resource "google_compute_instance" "my_instance" {
       provisioning_model = "SPOT"
       automatic_restart = "false"
       preemptible = "true"
+      instance_termination_action = "STOP"
     }
 }
 
+
+resource "google_compute_disk" "mlworkloads" {
+  name = "mlworkloads"
+  type = "pd-balanced"
+  size = "80"
+  zone = "us-central1-a"
+
+}
+
+resource "google_compute_attached_disk" "mlworkloads" {
+  disk     = google_compute_disk.mlworkloads.id
+  instance = google_compute_instance.my_instance.id
+}
 
 resource "google_compute_network" "terraform-network" {
   name = "terraform-network"
