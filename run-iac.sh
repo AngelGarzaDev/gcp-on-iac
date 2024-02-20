@@ -2,4 +2,4 @@
 
 terraform apply
 
-ansible-playbook mlworkloads.yaml -i hosts 
+ansible-playbook playbook.yaml -i hosts 
