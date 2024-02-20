@@ -1,8 +1,8 @@
 provider "google" {
     project = "innate-node-413006"
     credentials = "${file("credentials.json")}"
-    #region = "us-central1"
-    #zone = "us-central-c"
+    region = "us-central1"
+    zone = "us-central-a"
 }
 
 
@@ -81,7 +81,7 @@ resource "google_compute_firewall" "default" {
     }
     allow {
         protocol = "tcp"
-        ports = ["22","80","443","7860"]
+        ports = ["22","80","443","7860", "2049"]
     }
     source_ranges = ["75.4.192.68/32","35.235.240.0/20"]
     destination_ranges = []
