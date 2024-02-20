@@ -17,6 +17,9 @@
           - git
           - nfs-kernel-server
           - fdisk
+          - python3-venv
+          - pip
+          - google-perftools
         state: present
 
     - name: Register a variable
@@ -55,6 +58,20 @@
       notify: restart NFS server
     - name: export share
       ansible.builtin.command: "exportfs -a"
+
+    - name: Clone git repo AUTOMATIC1111
+      ansible.builtin.git:
+        repo: https://github.com/AngelGarzaDev/stable-diffusion-webui.git
+        dest: /mnt/ext1/stable-diffusion-webui
+        single_branch: yes
+        version: master
+
+    - name: Change file ownership, group and permissions
+      ansible.builtin.file:
+        path: /mnt/ext1/stable-diffusion-webui
+        owner: serveradmin
+        group: serveradmin
+        recurse: true
 
   handlers:
     - name: restart NFS server
