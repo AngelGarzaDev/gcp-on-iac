@@ -1,39 +1,64 @@
-- hosts: 34.170.212.240
+- hosts: 35.238.218.102
   become: true
   become_user: root
 
   tasks:
-  - name: Update all packages
-    ansible.builtin.apt:
-      update_cache: true
-      upgrade: "dist"
+    - name: Update all packages
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: "dist"
 
-  - name: Install packages
-    ansible.builtin.package:
-      name:
-        - wget
-        - curl
-        - btop
-        - git
-      state: present
+    - name: Install packages
+      ansible.builtin.package:
+        name:
+          - wget
+          - curl
+          - btop
+          - git
+          - nfs-kernel-server
+          - fdisk
+        state: present
 
-  - name: Register a variable
-    ansible.builtin.shell: nvidia-smi
-    register: driver
-    ignore_errors: true
+    - name: Register a variable
+      ansible.builtin.shell: nvidia-smi
+      register: driver
+      ignore_errors: true
 
-  - name: Use the variable in conditional statement
-    ansible.builtin.shell: curl https://raw.githubusercontent.com/GoogleCloudPlatform/compute-gpu-installation/main/linux/install_gpu_driver.py --output install_gpu_driver.py && sudo python3 install_gpu_driver.py
-    when: driver is failed
+    - name: Use the variable in conditional statement
+      ansible.builtin.shell: curl https://raw.githubusercontent.com/GoogleCloudPlatform/compute-gpu-installation/main/linux/install_gpu_driver.py --output install_gpu_driver.py && sudo python3 install_gpu_driver.py
+      when: driver is failed
 
-  - name: Create a ext4 filesystem
-    community.general.filesystem:
-      fstype: ext4
-      dev: /dev/nvme0n2p1
+    - name: Create a new ext4 primary partition
+      community.general.parted:
+        device: /dev/nvme0n2
+        number: 1
+        state: present
+        fs_type: "ext4"
 
-  - name: Mount filesystem
-    ansible.posix.mount:
-      path: /mnt/ext1
-      src: /dev/nvme0n2p1
-      fstype: ext4
-      state: mounted
+    - name: Create a ext4 filesystem
+      community.general.filesystem:
+        fstype: ext4
+        dev: /dev/nvme0n2p1
+
+    - name: Mount filesystem
+      ansible.posix.mount:
+        path: /mnt/ext1
+        src: /dev/nvme0n2p1
+        fstype: "ext4"
+        state: mounted
+    
+    - name: share in /etc/exports file
+      ansible.builtin.lineinfile:
+        path: /etc/exports
+        state: present
+        line: '/mnt/ext1 75.4.192.68/32(rw,sync,root_squash)'
+      notify: restart NFS server
+    - name: export share
+      ansible.builtin.command: "exportfs -a"
+
+  handlers:
+    - name: restart NFS server
+      ansible.builtin.service:
+        name: nfs-server
+        state: restarted
+        enabled: true
